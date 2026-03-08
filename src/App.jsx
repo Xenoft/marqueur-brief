@@ -1,4 +1,4 @@
-import { buildPrompt } from "../api/prompt.js";
+import { buildPrompt } from "./prompt.js";
 import { useState, useEffect } from "react";
 
 // ─── Brand Tokens ─────────────────────────────────────────────────────────────
