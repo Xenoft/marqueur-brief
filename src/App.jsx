@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
 
 // ─── Brand Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -417,16 +418,116 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     setLoading(false);
   }
 
-  function copyBrief() {
+  function exportPDF() {
     if (!brief) return;
-    const { raw, comments, brand, client, date } = brief;
+    const { comments, brand, client, date } = brief;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const W = 210, margin = 20, colW = W - margin * 2;
+    let y = margin;
+
+    const fillBg = () => {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, 210, 297, "F");
+    };
+
+    const addText = (text, size, bold, color) => {
+      doc.setFontSize(size);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setTextColor(...(color || [20, 20, 20]));
+      const lines = doc.splitTextToSize(String(text || ""), colW);
+      lines.forEach(line => {
+        if (y > 270) { doc.addPage(); y = margin; fillBg(); }
+        doc.text(line, margin, y);
+        y += size * 0.42;
+      });
+    };
+
+    const addSection = (title, body) => {
+      if (y > 240) { doc.addPage(); y = margin; fillBg(); }
+      y += 5;
+      doc.setFillColor(245, 245, 245);
+      const bodyLines = doc.splitTextToSize(String(body || ""), colW);
+      const blockH = bodyLines.length * 4.5 + 14;
+      doc.roundedRect(margin - 4, y - 4, colW + 8, blockH, 2, 2, "F");
+      addText(title, 7, true, [150, 140, 140]);
+      y += 2;
+      addText(body, 10, false, [20, 20, 20]);
+      y += 3;
+    };
+
+    fillBg();
+
+    // Header
+    addText("BRIEF CRÉATIF — MARQUEUR", 8, true, [150, 140, 140]);
+    y += 2;
+    addText(brand + (client ? " / " + client : ""), 22, true, [20, 20, 20]);
+    y += 2;
+    addText(date, 8, false, [150, 140, 140]);
+    y += 8;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, y, W - margin, y);
+    y += 8;
+
+    addSection("PROJET", comments.projet);
+    addSection("CIBLE", comments.cible);
+    addSection("POSITIONNEMENT", comments.positionnement);
+    addSection("DIRECTION CRÉATIVE", comments.direction_creative);
+    addSection("RÉFÉRENCES", comments.references);
+    addSection("LIVRABLES & CADRE", comments.livrables_cadre);
+
+    // Message clé
+    y += 5;
+    const msgLines = doc.splitTextToSize(String(comments.message_cle || ""), colW);
+    const msgH = msgLines.length * 5.5 + 18;
+    doc.setFillColor(206, 245, 99);
+    doc.roundedRect(margin - 4, y - 4, colW + 8, msgH, 2, 2, "F");
+    addText("MESSAGE CLÉ", 7, true, [80, 100, 20]);
+    y += 2;
+    addText(comments.message_cle, 12, true, [20, 20, 20]);
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(180, 170, 170);
+    doc.setFont("helvetica", "normal");
+    doc.text("Généré par MARQUEUR Brief Generator — marqueur.design", margin, 289);
+
+    doc.save(`Brief_${brand.replace(/\s+/g, "_")}_Marqueur.pdf`);
+  }
+
+  async function copyBrief() {
+    if (!brief) return;
+    const { comments, brand, client, date } = brief;
     let t = `BRIEF CRÉATIF — MARQUEUR\n${brand}${client ? ' / '+client : ''} — ${date}\n${'─'.repeat(44)}\n\n`;
     t += `PROJET\n${comments.projet}\n\nCIBLE\n${comments.cible}\n\nPOSITIONNEMENT\n${comments.positionnement}\n\n`;
     t += `DIRECTION CRÉATIVE\n${comments.direction_creative}\n\nRÉFÉRENCES\n${comments.references}\n\n`;
     t += `LIVRABLES & CADRE\n${comments.livrables_cadre}\n\nMESSAGE CLÉ\n${comments.message_cle}\n\n`;
-    t += `─────────────────\nGénéré par MARQUEUR Brief Generator\nmarqueur.design`;
-    navigator.clipboard.writeText(t);
-    setCopied(true); setTimeout(() => setCopied(false), 2500);
+    t += `Généré par MARQUEUR Brief Generator — marqueur.design`;
+
+    const fallback = () => {
+      const el = document.createElement("textarea");
+      el.value = t;
+      el.setAttribute("readonly", "");
+      el.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;";
+      document.body.appendChild(el);
+      el.focus();
+      el.setSelectionRange(0, el.value.length);
+      try { document.execCommand("copy"); } catch(e) {}
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    };
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(t);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } else {
+        fallback();
+      }
+    } catch {
+      fallback();
+    }
   }
 
   function reset() {
@@ -452,6 +553,8 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
         @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
         @media print {
           .no-print { display: none !important; }
+          body { background: white !important; color: black !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body { background: white !important; color: black !important; }
         }
       `}</style>
@@ -493,7 +596,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
                 <button onClick={copyBrief} style={{ padding: "9px 16px", borderRadius: 2, background: C.gray2, color: C.white, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
                   {copied ? "✓ Copié" : "Copier"}
                 </button>
-                <button onClick={() => window.print()} style={{ padding: "9px 16px", borderRadius: 12, background: C.yellow, color: C.black, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "1px", textTransform: "uppercase" }}>
+                <button onClick={() => exportPDF()} style={{ padding: "9px 16px", borderRadius: 10, background: C.yellow, color: C.black, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
                   Export PDF
                 </button>
               </div>
