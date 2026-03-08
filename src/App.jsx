@@ -429,6 +429,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     const GREEN  = [206,245,99],  DKGRN = [55,85,10];
 
     const bg = () => { doc.setFillColor(...WHITE); doc.rect(0,0,W,H,"F"); };
+    const checkY = (need) => { if (y + need > H - 18) { footer(); doc.addPage(); bg(); y = drawHeader() + 8; } };
 
     const drawHeader = () => {
       doc.setFontSize(7); doc.setFont("helvetica","normal");
