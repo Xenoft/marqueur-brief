@@ -549,8 +549,8 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
               <div style={{ fontSize: 13, fontWeight: 600, color: C.white, marginBottom: 6 }}>Tu veux aller plus loin ?</div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 18, lineHeight: 1.65 }}>Ce brief est un point de départ. Pour valider ta direction créative ou démarrer une identité complète.</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <a href="https://calendly.com" target="_blank" rel="noreferrer" style={{ padding: "10px 20px", borderRadius: 2, background: C.yellow, color: C.black, fontSize: 11, fontWeight: 700, textDecoration: "none", letterSpacing: "0.5px", textTransform: "uppercase" }}>Mini Conseil — 50€ →</a>
-                <a href="https://notion.so" target="_blank" rel="noreferrer" style={{ padding: "10px 20px", borderRadius: 2, background: "transparent", color: C.white, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, textDecoration: "none", letterSpacing: "0.5px" }}>Pack Starter — 450€ →</a>
+                <a href="https://ionian-handball-f23.notion.site/Marqueur-Mini-Conseil-22af125382be8093b6f6e60197e4b848" target="_blank" rel="noreferrer" style={{ padding: "10px 20px", borderRadius: 2, background: C.yellow, color: C.black, fontSize: 11, fontWeight: 700, textDecoration: "none", letterSpacing: "0.5px", textTransform: "uppercase" }}>Mini Conseil — 50€ →</a>
+                <a href="https://www.tiktok.com/@marqueurdesign" target="_blank" rel="noreferrer" style={{ padding: "10px 20px", borderRadius: 2, background: "transparent", color: C.white, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, textDecoration: "none", letterSpacing: "0.5px" }}>@marqueurdesign</a>
               </div>
             </div>
 
