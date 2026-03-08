@@ -422,82 +422,356 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     if (!brief) return;
     const { comments, brand, client, date } = brief;
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const W = 210, margin = 20, colW = W - margin * 2;
-    let y = margin;
+    const W = 210, H = 297;
+    const mX = 16, mY = 16;
+    const colW = W - mX * 2;
+    let y = mY;
 
-    const fillBg = () => {
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, 210, 297, "F");
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const rgb = (r,g,b) => ({ r, g, b });
+    const BLACK  = rgb(18,14,14);
+    const WHITE  = rgb(255,255,255);
+    const GRAY1  = rgb(248,248,248);
+    const GRAY2  = rgb(235,235,235);
+    const MUTED  = rgb(150,140,140);
+    const GREEN  = rgb(206,245,99);
+    const DKGREEN= rgb(60,90,10);
+
+    const setColor = (c, fill=false) => fill
+      ? doc.setFillColor(c.r, c.g, c.b)
+      : doc.setTextColor(c.r, c.g, c.b);
+
+    const newPage = () => {
+      doc.addPage();
+      y = mY;
+      pageBg();
     };
 
-    const addText = (text, size, bold, color) => {
+    const checkY = (needed) => { if (y + needed > H - 16) newPage(); };
+
+    const pageBg = () => {
+      setColor(WHITE, true);
+      doc.rect(0, 0, W, H, "F");
+    };
+
+    const txt = (text, size, weight, color, x, maxW) => {
       doc.setFontSize(size);
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      doc.setTextColor(...(color || [20, 20, 20]));
-      const lines = doc.splitTextToSize(String(text || ""), colW);
+      doc.setFont("helvetica", weight);
+      setColor(color || BLACK);
+      const lines = doc.splitTextToSize(String(text || "—"), maxW || colW);
       lines.forEach(line => {
-        if (y > 270) { doc.addPage(); y = margin; fillBg(); }
-        doc.text(line, margin, y);
-        y += size * 0.42;
+        doc.text(line, x || mX, y);
+        y += size * 0.38;
       });
+      return lines.length;
     };
 
-    const addSection = (title, body) => {
-      if (y > 240) { doc.addPage(); y = margin; fillBg(); }
+    const label = (text) => {
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+      doc.setCharSpace(1.5);
+      doc.text(text.toUpperCase(), mX, y);
+      doc.setCharSpace(0);
       y += 5;
-      doc.setFillColor(245, 245, 245);
-      const bodyLines = doc.splitTextToSize(String(body || ""), colW);
-      const blockH = bodyLines.length * 4.5 + 14;
-      doc.roundedRect(margin - 4, y - 4, colW + 8, blockH, 2, 2, "F");
-      addText(title, 7, true, [150, 140, 140]);
-      y += 2;
-      addText(body, 10, false, [20, 20, 20]);
-      y += 3;
     };
 
-    fillBg();
+    // ── Page 1 : Réponses client ─────────────────────────────────────────────
+    pageBg();
 
-    // Header
-    addText("BRIEF CRÉATIF — MARQUEUR", 8, true, [150, 140, 140]);
-    y += 2;
-    addText(brand + (client ? " / " + client : ""), 22, true, [20, 20, 20]);
-    y += 2;
-    addText(date, 8, false, [150, 140, 140]);
-    y += 8;
-    doc.setDrawColor(220, 220, 220);
-    doc.line(margin, y, W - margin, y);
-    y += 8;
+    // Header band p1
+    setColor(BLACK, true);
+    doc.rect(0, 0, W, 38, "F");
+    setColor(GREEN, true);
+    doc.triangle(mX, 8, mX + 10, 8, mX + 8, 30, "F");
+    doc.triangle(mX + 10, 8, mX + 18, 30, mX + 8, 30, "F");
+    doc.setFontSize(18); doc.setFont("helvetica","bold");
+    doc.setTextColor(WHITE.r,WHITE.g,WHITE.b);
+    doc.text((brand + (client ? "  /  " + client : "")).toUpperCase(), mX + 24, 18);
+    doc.setFontSize(7.5); doc.setFont("helvetica","normal");
+    doc.setTextColor(150,140,140);
+    doc.text("RÉPONSES CLIENT", mX + 24, 27);
+    doc.text(date, W - mX, 27, { align: "right" });
+    y = 50;
 
-    addSection("PROJET", comments.projet);
-    addSection("CIBLE", comments.cible);
-    addSection("POSITIONNEMENT", comments.positionnement);
-    addSection("DIRECTION CRÉATIVE", comments.direction_creative);
-    addSection("RÉFÉRENCES", comments.references);
-    addSection("LIVRABLES & CADRE", comments.livrables_cadre);
+    const rawFields = [
+      ["Projet / Description", raw.projet],
+      ["Cible & besoins", raw.cible],
+      ["Concurrents", raw.concurrents],
+      ["Valeurs, ton & positionnement", raw.positionnement],
+      ["Références & inspirations", raw.inspirations],
+      ["À éviter", raw.a_eviter],
+      ["Livrables", raw.livrables],
+      ["Budget, délai & contraintes", raw.cadre],
+    ].filter(([, v]) => v && v.trim());
 
-    // Message clé
-    y += 5;
-    const msgLines = doc.splitTextToSize(String(comments.message_cle || ""), colW);
-    const msgH = msgLines.length * 5.5 + 18;
-    doc.setFillColor(206, 245, 99);
-    doc.roundedRect(margin - 4, y - 4, colW + 8, msgH, 2, 2, "F");
-    addText("MESSAGE CLÉ", 7, true, [80, 100, 20]);
-    y += 2;
-    addText(comments.message_cle, 12, true, [20, 20, 20]);
+    rawFields.forEach(([fieldLabel, fieldVal]) => {
+      const lines = doc.splitTextToSize(String(fieldVal), colW - 4);
+      const bH = lines.length * 3.8 + 13;
+      checkY(bH + 4);
+      const bY = y;
+      setColor(GRAY1, true);
+      doc.roundedRect(mX - 3, bY - 4, colW + 6, bH, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+      doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text(fieldLabel.toUpperCase(), mX, bY); doc.setCharSpace(0);
+      y = bY + 6;
+      doc.setFontSize(9.5); doc.setFont("helvetica","normal");
+      doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      lines.forEach(l => { doc.text(l, mX, y); y += 3.8; });
+      y = bY + bH + 5;
+    });
 
-    // Footer
-    doc.setFontSize(7);
-    doc.setTextColor(180, 170, 170);
+    // ── Page 2 : Brief interprété ─────────────────────────────────────────────
+    doc.addPage();
+    y = mY;
+    pageBg();
+
+    // ── Header band ──────────────────────────────────────────────────────────
+    setColor(BLACK, true);
+    doc.rect(0, 0, W, 38, "F");
+
+    // Logo M mark (simplified trapezoid)
+    setColor(GREEN, true);
+    doc.triangle(mX, 8, mX + 10, 8, mX + 8, 30, "F");
+    doc.triangle(mX + 10, 8, mX + 18, 30, mX + 8, 30, "F");
+
+    // Brand name
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.text((brand + (client ? "  /  " + client : "")).toUpperCase(), mX + 24, 18);
+
+    // Subtitle
+    doc.setFontSize(7.5);
     doc.setFont("helvetica", "normal");
-    doc.text("Généré par MARQUEUR Brief Generator — marqueur.design", margin, 289);
+    doc.setTextColor(150, 140, 140);
+    doc.text("BRIEF CRÉATIF — MARQUEUR DESIGN", mX + 24, 27);
+    doc.text(date, W - mX, 27, { align: "right" });
 
-    doc.save(`Brief_${brand.replace(/\s+/g, "_")}_Marqueur.pdf`);
+    y = 50;
+
+    // ── 2-column layout ───────────────────────────────────────────────────────
+    const col1X = mX;
+    const col2X = W / 2 + 4;
+    const colHalf = W / 2 - mX - 4;
+
+    const block = (titleText, bodyText, x, w, accent) => {
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+      doc.setCharSpace(1.5);
+      doc.text(titleText.toUpperCase(), x, y);
+      doc.setCharSpace(0);
+      const labelY = y;
+      y += 5;
+
+      // Measure body height
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(String(bodyText || "—"), w);
+      const blockH = lines.length * 3.6 + 12;
+
+      // Background
+      setColor(accent || GRAY1, true);
+      doc.roundedRect(x - 3, labelY - 4, w + 6, blockH, 1.5, 1.5, "F");
+
+      // Re-draw label on top of bg
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+      doc.setCharSpace(1.5);
+      doc.text(titleText.toUpperCase(), x, labelY);
+      doc.setCharSpace(0);
+      y = labelY + 5;
+
+      // Body text
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(accent ? DKGREEN.r : BLACK.r, accent ? DKGREEN.g : BLACK.g, accent ? DKGREEN.b : BLACK.b);
+      lines.forEach(line => { doc.text(line, x, y); y += 3.6; });
+
+      return blockH;
+    };
+
+    // ── Réponses client ──────────────────────────────────────────────────────
+    {
+      const rawFields = [
+        ["Projet", brief.raw.projet],
+        ["Cible", brief.raw.cible],
+        ["Concurrents", brief.raw.concurrents],
+        ["Positionnement", brief.raw.positionnement],
+        ["Inspirations", brief.raw.inspirations],
+        ["À éviter", brief.raw.a_eviter],
+        ["Livrables", brief.raw.livrables],
+        ["Cadre", brief.raw.cadre],
+      ].filter(([, v]) => v && v.trim());
+
+      // Section title
+      doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("RÉPONSES CLIENT", mX, y); doc.setCharSpace(0);
+      y += 6;
+
+      rawFields.forEach(([label, value]) => {
+        checkY(16);
+        const lines = doc.splitTextToSize(String(value), colW - 4);
+        const bH = lines.length * 3.5 + 10;
+        setColor(GRAY1, true);
+        doc.roundedRect(mX - 3, y - 4, colW + 6, bH, 1.5, 1.5, "F");
+        doc.setFontSize(6); doc.setFont("helvetica","bold");
+        doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.2);
+        doc.text(label.toUpperCase(), mX, y); doc.setCharSpace(0);
+        y += 4.5;
+        doc.setFontSize(8.5); doc.setFont("helvetica","normal");
+        doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+        lines.forEach(l => { doc.text(l, mX, y); y += 3.5; });
+        y += 4;
+      });
+
+      // Divider
+      y += 4;
+      doc.setDrawColor(220,220,220);
+      doc.line(mX, y, W - mX, y);
+      y += 10;
+
+      // Section title interprétation
+      doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("BRIEF INTERPRÉTÉ", mX, y); doc.setCharSpace(0);
+      y += 8;
+    }
+
+    // Row 1: Projet (full width)
+    checkY(30);
+    {
+      const bY = y;
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+      doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("PROJET", mX, y); doc.setCharSpace(0);
+      y += 5;
+      doc.setFontSize(9.5); doc.setFont("helvetica","normal");
+      const lines = doc.splitTextToSize(String(comments.projet||"—"), colW);
+      const bH = lines.length * 3.8 + 12;
+      setColor(GRAY1,true);
+      doc.roundedRect(mX-3, bY-4, colW+6, bH, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+      doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("PROJET", mX, bY); doc.setCharSpace(0);
+      y = bY + 5;
+      doc.setFontSize(9.5); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      lines.forEach(l => { doc.text(l, mX, y); y += 3.8; });
+      y = bY + bH + 6;
+    }
+
+    // Row 2: Cible + Positionnement (2 columns)
+    checkY(30);
+    {
+      const rowStartY = y;
+      // Col 1: Cible
+      const linesC = doc.splitTextToSize(String(comments.cible||"—"), colHalf);
+      const hC = linesC.length * 3.6 + 12;
+      setColor(GRAY1,true); doc.roundedRect(col1X-3, rowStartY-4, colHalf+6, hC, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("CIBLE", col1X, rowStartY); doc.setCharSpace(0);
+      doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      let tmpY = rowStartY + 5;
+      linesC.forEach(l => { doc.text(l, col1X, tmpY); tmpY += 3.6; });
+
+      // Col 2: Positionnement
+      const linesP = doc.splitTextToSize(String(comments.positionnement||"—"), colHalf);
+      const hP = linesP.length * 3.6 + 12;
+      setColor(GRAY2,true); doc.roundedRect(col2X-3, rowStartY-4, colHalf+6, hP, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("POSITIONNEMENT", col2X, rowStartY); doc.setCharSpace(0);
+      doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      tmpY = rowStartY + 5;
+      linesP.forEach(l => { doc.text(l, col2X, tmpY); tmpY += 3.6; });
+
+      y = rowStartY + Math.max(hC, hP) + 6;
+    }
+
+    // Row 3: Direction créative (full width)
+    checkY(30);
+    {
+      const bY = y;
+      const lines = doc.splitTextToSize(String(comments.direction_creative||"—"), colW);
+      const bH = lines.length * 3.8 + 12;
+      setColor(GRAY1,true); doc.roundedRect(mX-3, bY-4, colW+6, bH, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("DIRECTION CRÉATIVE", mX, bY); doc.setCharSpace(0);
+      y = bY + 5;
+      doc.setFontSize(9.5); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      lines.forEach(l => { doc.text(l, mX, y); y += 3.8; });
+      y = bY + bH + 6;
+    }
+
+    // Row 4: Références + Livrables (2 columns)
+    checkY(30);
+    {
+      const rowStartY = y;
+      const linesR = doc.splitTextToSize(String(comments.references||"—"), colHalf);
+      const hR = linesR.length * 3.6 + 12;
+      setColor(GRAY2,true); doc.roundedRect(col1X-3, rowStartY-4, colHalf+6, hR, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("RÉFÉRENCES", col1X, rowStartY); doc.setCharSpace(0);
+      doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      let tmpY = rowStartY + 5;
+      linesR.forEach(l => { doc.text(l, col1X, tmpY); tmpY += 3.6; });
+
+      const linesL = doc.splitTextToSize(String(comments.livrables_cadre||"—"), colHalf);
+      const hL = linesL.length * 3.6 + 12;
+      setColor(GRAY1,true); doc.roundedRect(col2X-3, rowStartY-4, colHalf+6, hL, 1.5, 1.5, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(MUTED.r,MUTED.g,MUTED.b); doc.setCharSpace(1.5);
+      doc.text("LIVRABLES & CADRE", col2X, rowStartY); doc.setCharSpace(0);
+      doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      tmpY = rowStartY + 5;
+      linesL.forEach(l => { doc.text(l, col2X, tmpY); tmpY += 3.6; });
+
+      y = rowStartY + Math.max(hR, hL) + 6;
+    }
+
+    // ── Message clé ───────────────────────────────────────────────────────────
+    checkY(30);
+    {
+      const bY = y;
+      const lines = doc.splitTextToSize(String(comments.message_cle||"—"), colW - 4);
+      const bH = lines.length * 5.5 + 16;
+      setColor(GREEN, true); doc.roundedRect(mX-3, bY-4, colW+6, bH, 2, 2, "F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(DKGREEN.r,DKGREEN.g,DKGREEN.b); doc.setCharSpace(1.5);
+      doc.text("MESSAGE CLÉ", mX, bY); doc.setCharSpace(0);
+      y = bY + 7;
+      doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(BLACK.r,BLACK.g,BLACK.b);
+      lines.forEach(l => { doc.text(l, mX, y); y += 5.5; });
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(MUTED.r,MUTED.g,MUTED.b);
+    doc.text("MARQUEUR BRIEF GENERATOR", mX, H - 8);
+    doc.text("marqueur.design", W - mX, H - 8, { align: "right" });
+
+    doc.save(`Brief_${brand.replace(/\s+/g,"_")}_Marqueur.pdf`);
   }
 
   async function copyBrief() {
     if (!brief) return;
-    const { comments, brand, client, date } = brief;
-    let t = `BRIEF CRÉATIF — MARQUEUR\n${brand}${client ? ' / '+client : ''} — ${date}\n${'─'.repeat(44)}\n\n`;
+    const { raw, comments, brand, client, date } = brief;
+    const sep = '─'.repeat(44);
+    let t = `BRIEF CRÉATIF — MARQUEUR\n${brand}${client ? ' / '+client : ''} — ${date}\n${sep}\n\n`;
+
+    t += `RÉPONSES CLIENT\n${sep}\n`;
+    t += `Projet : ${raw.projet}\n`;
+    t += `Cible : ${raw.cible}\n`;
+    t += raw.concurrents ? `Concurrents : ${raw.concurrents}\n` : '';
+    t += `Positionnement : ${raw.positionnement}\n`;
+    t += raw.inspirations ? `Inspirations : ${raw.inspirations}\n` : '';
+    t += raw.a_eviter ? `À éviter : ${raw.a_eviter}\n` : '';
+    t += `Livrables : ${raw.livrables}\n`;
+    t += `Cadre : ${raw.cadre}\n\n`;
+
+    t += `BRIEF INTERPRÉTÉ PAR L'IA\n${sep}\n`;
     t += `PROJET\n${comments.projet}\n\nCIBLE\n${comments.cible}\n\nPOSITIONNEMENT\n${comments.positionnement}\n\n`;
     t += `DIRECTION CRÉATIVE\n${comments.direction_creative}\n\nRÉFÉRENCES\n${comments.references}\n\n`;
     t += `LIVRABLES & CADRE\n${comments.livrables_cadre}\n\nMESSAGE CLÉ\n${comments.message_cle}\n\n`;
