@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { jsPDF } from "jspdf";
 
 // ─── Brand Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -419,177 +418,10 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
   }
 
   function exportPDF() {
-    if (!brief) return;
-    const { raw, comments, brand, client, date } = brief;
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const W = 210, H = 297, mX = 20, colW = 210 - 40;
-
-    const WHITE  = [255,255,255], BLACK = [18,14,14], MUTED = [160,150,150];
-    const LGRAY  = [245,245,245], DGRAY = [200,195,195];
-    const GREEN  = [206,245,99],  DKGRN = [55,85,10];
-
-    const bg = () => { doc.setFillColor(...WHITE); doc.rect(0,0,W,H,"F"); };
-    const checkY = (need) => { if (y + need > H - 18) { footer(); doc.addPage(); bg(); y = drawHeader() + 8; } };
-
-    const drawHeader = () => {
-      doc.setFontSize(7); doc.setFont("helvetica","normal");
-      doc.setTextColor(...MUTED);
-      doc.text("BRIEF CRÉATIF — MARQUEUR", mX, 14);
-      const brandStr = (brand||"") + (client ? " / "+client : "");
-      doc.setFontSize(22); doc.setFont("helvetica","bold");
-      doc.setTextColor(...BLACK);
-      doc.text(brandStr.toUpperCase(), mX, 24);
-      doc.setFontSize(7); doc.setFont("helvetica","normal");
-      doc.setTextColor(...MUTED);
-      doc.text(date, mX, 31);
-      doc.setDrawColor(...DGRAY); doc.setLineWidth(0.4);
-      doc.line(mX, 36, W-mX, 36);
-      return 46;
-    };
-
-    const sectionLabel = (label, y) => {
-      doc.setFontSize(7); doc.setFont("helvetica","bold");
-      doc.setTextColor(...MUTED); doc.setCharSpace(1.2);
-      doc.text(label.toUpperCase(), mX, y);
-      doc.setCharSpace(0);
-    };
-
-    const drawSection = (label, body, y) => {
-      if (!body || !body.trim()) return y;
-      const lines = doc.splitTextToSize(String(body), colW);
-      const totalH = 3.5 + lines.length * 5.0 + 7;
-      if (y + totalH > H - 18) return null;
-      sectionLabel(label, y);
-      y += 3.5;
-      doc.setFontSize(9.5); doc.setFont("helvetica","normal");
-      doc.setTextColor(...BLACK);
-      lines.forEach(l => { doc.text(l, mX, y); y += 5.0; });
-      return y + 7;
-    };
-
-    const footer = () => {
-      doc.setFontSize(7); doc.setFont("helvetica","normal");
-      doc.setTextColor(...MUTED);
-      doc.text("Généré par MARQUEUR Brief Generator", mX, H-8);
-      doc.text("marqueur.design", W-mX, H-8, { align:"right" });
-    };
-
-    // ── PAGE 1 : Réponses client ────────────────────────────────────────────
-    bg();
-    let y = drawHeader();
-
-    // Titre
-    doc.setFontSize(8); doc.setFont("helvetica","bold");
-    doc.setTextColor(...MUTED); doc.setCharSpace(1.2);
-    doc.text("RÉPONSES CLIENT", mX, y);
-    doc.setCharSpace(0);
-    y += 5;
-
-    // Calcul hauteur totale du bloc gris
-    const rawFields = [
-      ["Projet & description",          raw.projet],
-      ["Cible & besoins",               raw.cible],
-      ["Concurrents",                   raw.concurrents],
-      ["Valeurs, ton & positionnement", raw.positionnement],
-      ["Références & inspirations",     raw.inspirations],
-      ["À éviter",                      raw.a_eviter],
-      ["Livrables",                     raw.livrables],
-      ["Budget, délai & contraintes",   raw.cadre],
-    ].filter(([,v]) => v && v.trim());
-
-    const pad = 6;
-    const lineH = 5.0;
-    const labelH = 3.5;
-    const gapH = 6;
-
-    let totalInner = 0;
-    rawFields.forEach(([,body]) => {
-      const lines = doc.splitTextToSize(String(body), colW - 8);
-      totalInner += labelH + lines.length * lineH + gapH;
-    });
-    totalInner -= gapH; // no trailing gap after last
-    const blockH = totalInner + pad * 2 + 2;
-
-    // Bloc gris
-    doc.setFillColor(...LGRAY);
-    doc.roundedRect(mX-4, y, colW+8, blockH, 4, 4, "F");
-
-    // Contenu dans le bloc
-    let cy = y + pad + 2;
-    rawFields.forEach(([label, body], i) => {
-      const lines = doc.splitTextToSize(String(body), colW - 8);
-      const iX = mX + 1;
-      doc.setFontSize(6.5); doc.setFont("helvetica","bold");
-      doc.setTextColor(...MUTED); doc.setCharSpace(1.2);
-      doc.text(label.toUpperCase(), iX, cy); doc.setCharSpace(0);
-      cy += labelH;
-      doc.setFontSize(9.5); doc.setFont("helvetica","normal");
-      doc.setTextColor(...BLACK);
-      lines.forEach(l => { doc.text(l, iX, cy); cy += lineH; });
-      if (i < rawFields.length - 1) cy += gapH;
-    });
-
-    footer();
-    doc.addPage();
-
-    // ── PAGE 2 : Brief IA ───────────────────────────────────────────────────
-    bg();
-    y = drawHeader();
-
-    // Titre
-    doc.setFontSize(8); doc.setFont("helvetica","bold");
-    doc.setTextColor(...MUTED); doc.setCharSpace(1.2);
-    doc.text("BRIEF GÉNÉRÉ PAR L'IA", mX, y);
-    doc.setCharSpace(0);
-    y += 8;
-
-    const aiFields = [
-      ["Projet",             comments.projet],
-      ["Cible",              comments.cible],
-      ["Positionnement",     comments.positionnement],
-      ["Direction créative", comments.direction_creative],
-      ["Références",         comments.references],
-      ["Livrables & cadre",  comments.livrables_cadre],
-    ];
-
-    for (const [label, body] of aiFields) {
-      const result = drawSection(label, body, y);
-      if (result === null) {
-        footer(); doc.addPage(); bg();
-        y = drawHeader() + 8;
-        y = drawSection(label, body, y);
-      } else {
-        y = result;
-      }
-    }
-
-    // Message clé
-    y += 4;
-    checkY(40);
-    doc.setFontSize(14); doc.setFont("helvetica","bold");
-    const msgLines = doc.splitTextToSize(String(comments.message_cle||""), colW - 4);
-    const msgH = msgLines.length * 7 + 16;
-    doc.setFillColor(...GREEN);
-    doc.roundedRect(mX-4, y, colW+8, msgH, 2, 2, "F");
-    doc.setFontSize(7); doc.setFont("helvetica","bold");
-    doc.setTextColor(...DKGRN); doc.setCharSpace(1.2);
-    doc.text("MESSAGE CLÉ", mX, y+5); doc.setCharSpace(0);
-    doc.setFontSize(14); doc.setFont("helvetica","bold");
-    doc.setTextColor(...BLACK);
-    let ty = y + 13;
-    msgLines.forEach(l => { doc.text(l, mX, ty); ty += 7; });
-
-    footer();
-    const filename = `Brief_${(brand||"Marqueur").replace(/\s+/g,"_")}.pdf`;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      const blob = doc.output("blob");
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } else {
-      doc.save(filename);
-    }
+    const prev = document.title;
+    document.title = `Brief_${(brief?.brand||"Marqueur").replace(/\s+/g,"_")}`;
+    window.print();
+    setTimeout(() => { document.title = prev; }, 1000);
   }
 
 
@@ -672,6 +504,14 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
         @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
         @media print {
           .no-print { display: none !important; }
+          body { background: white !important; color: black !important; font-family: 'Helvetica Neue', Arial, sans-serif !important; }
+          .print-page-break { page-break-before: always; }
+          .print-section { margin-bottom: 18px !important; }
+          .print-label { font-size: 8px !important; font-weight: 700 !important; letter-spacing: 1.5px !important; color: #999 !important; text-transform: uppercase !important; margin-bottom: 3px !important; }
+          .print-body { font-size: 10px !important; color: #111 !important; line-height: 1.5 !important; }
+          .print-raw-block { background: #f5f5f5 !important; border-radius: 8px !important; padding: 16px !important; margin-bottom: 24px !important; }
+          .print-msg { background: #CEF563 !important; border-radius: 8px !important; padding: 16px !important; }
+          .print-header { margin-bottom: 24px !important; border-bottom: 1px solid #ddd !important; padding-bottom: 12px !important; }
           body { background: white !important; color: black !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body { background: white !important; color: black !important; }
@@ -704,27 +544,27 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
         {brief && !loading && (
           <div className="fade-up">
             {/* Result header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, gap: 16, flexWrap: "wrap" }}>
+            <div className="print-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, gap: 16, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 9, letterSpacing: "2px", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Brief créatif</div>
+                <div style={{ fontSize: 9, letterSpacing: "2px", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Brief créatif — Marqueur</div>
                 <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1 }}>{brief.brand}</div>
                 {brief.client && <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>{brief.client}</div>}
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{brief.date}</div>
               </div>
               <div className="no-print" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={copyBrief} style={{ padding: "9px 16px", borderRadius: 2, background: C.gray2, color: C.white, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
+                <button onClick={copyBrief} style={{ padding: "9px 16px", borderRadius: 10, background: C.gray2, color: C.white, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
                   {copied ? "✓ Copié" : "Copier"}
                 </button>
-                <button onClick={() => exportPDF()} style={{ padding: "9px 16px", borderRadius: 10, background: C.yellow, color: C.black, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
+                <button onClick={() => exportPDF()} style={{ padding: "9px 16px", borderRadius: 10, background: "#CEF563", color: C.black, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px" }}>
                   Export PDF
                 </button>
               </div>
             </div>
 
             {/* Raw inputs */}
-            <div style={{ background: C.gray1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 24 }}>
-              <Label dim>Inputs client</Label>
-              <div style={{ display: "grid", gap: 8 }}>
+            <div className="print-raw-block" style={{ background: C.gray1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 24 }}>
+              <div className="print-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: C.muted, marginBottom: 14 }}>Réponses client</div>
+              <div style={{ display: "grid", gap: 10 }}>
                 {[
                   ["Projet", brief.raw.projet],
                   ["Cible", brief.raw.cible],
@@ -734,16 +574,17 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
                   ["À éviter", brief.raw.a_eviter],
                   ["Livrables", brief.raw.livrables],
                   ["Cadre", brief.raw.cadre],
-                ].map(([lbl, val]) => (
-                  <div key={lbl} style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 12, fontSize: 12 }}>
-                    <div style={{ color: C.muted, paddingTop: 1 }}>{lbl}</div>
-                    <div style={{ color: C.white, lineHeight: 1.55 }}>{val}</div>
+                ].filter(([,v]) => v && v.trim()).map(([lbl, val]) => (
+                  <div key={lbl} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 12, fontSize: 12 }}>
+                    <div className="print-label" style={{ color: C.muted, paddingTop: 1, fontWeight: 600, fontSize: 11 }}>{lbl}</div>
+                    <div className="print-body" style={{ color: C.white, lineHeight: 1.55 }}>{val}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <Divider label="Brief structuré" />
+            <div className="print-page-break" />
+            <Divider label="Brief généré par l'IA" />
 
             {/* Brief sections */}
             {[
@@ -754,15 +595,15 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
               ["Références",        brief.comments.references],
               ["Livrables & Cadre", brief.comments.livrables_cadre],
             ].map(([lbl, val]) => (
-              <div key={lbl} style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 0" }}>
-                <Label dim>{lbl}</Label>
-                <div style={{ fontSize: 14, color: C.white, lineHeight: 1.7 }}>{val}</div>
+              <div key={lbl} className="print-section" style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 0" }}>
+                <div className="print-label"><Label dim>{lbl}</Label></div>
+                <div className="print-body" style={{ fontSize: 14, color: C.white, lineHeight: 1.7 }}>{val}</div>
               </div>
             ))}
 
             {/* Message clé */}
-            <div style={{ background: C.yellow, padding: "20px 24px", margin: "24px 0 0", borderRadius: 12 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2.5px", textTransform: "uppercase", color: "#666", marginBottom: 8 }}>Message clé</div>
+            <div className="print-msg" style={{ background: "#CEF563", padding: "20px 24px", margin: "24px 0 0", borderRadius: 12 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2.5px", textTransform: "uppercase", color: "#555", marginBottom: 8 }}>Message clé</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: C.black, lineHeight: 1.4, letterSpacing: "-0.2px" }}>{brief.comments.message_cle}</div>
             </div>
 
