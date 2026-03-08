@@ -420,7 +420,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
 
   function exportPDF() {
     if (!brief) return;
-    const { comments, brand, client, date } = brief;
+    const { raw, comments, brand, client, date } = brief;
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = 210, H = 297;
     const mX = 16, mY = 16;
