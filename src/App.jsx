@@ -580,7 +580,15 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
 
     footer();
     const filename = `Brief_${(brand||"Marqueur").replace(/\s+/g,"_")}.pdf`;
-    doc.save(filename);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } else {
+      doc.save(filename);
+    }
   }
 
 
