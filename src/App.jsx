@@ -72,7 +72,7 @@ const Label = ({ children, dim }) => (
 
 const Chip = ({ label, selected, onClick }) => (
   <button onClick={onClick} style={{
-    padding: "7px 15px", borderRadius: 8,
+    padding: "7px 12px", borderRadius: 8, wordBreak: "break-word",
     border: `1px solid ${selected ? C.white : C.border}`,
     background: selected ? C.white : "transparent",
     color: selected ? C.black : C.dim,
@@ -95,7 +95,7 @@ const Field = ({ label, error, children, hint }) => (
 const MInput = ({ value, onChange, placeholder, error }) => (
   <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
     style={{
-      width: "100%", background: "transparent", border: `1px solid ${error ? C.err : C.border}`,
+      width: "100%", maxWidth: "100%", background: "transparent", border: `1px solid ${error ? C.err : C.border}`,
       borderRadius: 10, color: C.white, fontFamily: "inherit", fontSize: 14,
       padding: "12px 16px", outline: "none", boxSizing: "border-box",
       transition: "border-color 0.15s",
@@ -106,7 +106,7 @@ const MInput = ({ value, onChange, placeholder, error }) => (
 const MTextarea = ({ value, onChange, placeholder, error }) => (
   <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3}
     style={{
-      width: "100%", background: "transparent", border: `1px solid ${error ? C.err : C.border}`,
+      width: "100%", maxWidth: "100%", background: "transparent", border: `1px solid ${error ? C.err : C.border}`,
       borderRadius: 10, color: C.white, fontFamily: "inherit", fontSize: 14,
       padding: "12px 16px", outline: "none", resize: "vertical", boxSizing: "border-box",
     }}
@@ -456,14 +456,14 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     const drawSection = (label, body, y) => {
       if (!body || !body.trim()) return y;
       const lines = doc.splitTextToSize(String(body), colW);
-      const totalH = 4 + lines.length * 5.2 + 8;
+      const totalH = 3.5 + lines.length * 5.0 + 7;
       if (y + totalH > H - 18) return null;
       sectionLabel(label, y);
-      y += 4.5;
+      y += 3.5;
       doc.setFontSize(9.5); doc.setFont("helvetica","normal");
       doc.setTextColor(...BLACK);
-      lines.forEach(l => { doc.text(l, mX, y); y += 5.2; });
-      return y + 8;
+      lines.forEach(l => { doc.text(l, mX, y); y += 5.0; });
+      return y + 7;
     };
 
     const footer = () => {
@@ -496,32 +496,36 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
       ["Budget, délai & contraintes",   raw.cadre],
     ].filter(([,v]) => v && v.trim());
 
-    const pad = 5;
+    const pad = 6;
+    const lineH = 5.0;
+    const labelH = 3.5;
+    const gapH = 6;
+
     let totalInner = 0;
     rawFields.forEach(([,body]) => {
       const lines = doc.splitTextToSize(String(body), colW - 8);
-      totalInner += 4 + lines.length * 5.2 + 7;
+      totalInner += labelH + lines.length * lineH + gapH;
     });
-    totalInner += 2;
-    const blockH = totalInner + pad * 2;
+    totalInner -= gapH; // no trailing gap after last
+    const blockH = totalInner + pad * 2 + 2;
 
     // Bloc gris
     doc.setFillColor(...LGRAY);
     doc.roundedRect(mX-4, y, colW+8, blockH, 4, 4, "F");
 
     // Contenu dans le bloc
-    let cy = y + pad;
-    rawFields.forEach(([label, body]) => {
+    let cy = y + pad + 2;
+    rawFields.forEach(([label, body], i) => {
       const lines = doc.splitTextToSize(String(body), colW - 8);
       const iX = mX + 1;
-      doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold");
       doc.setTextColor(...MUTED); doc.setCharSpace(1.2);
       doc.text(label.toUpperCase(), iX, cy); doc.setCharSpace(0);
-      cy += 4;
+      cy += labelH;
       doc.setFontSize(9.5); doc.setFont("helvetica","normal");
       doc.setTextColor(...BLACK);
-      lines.forEach(l => { doc.text(l, iX, cy); cy += 5.2; });
-      cy += 7;
+      lines.forEach(l => { doc.text(l, iX, cy); cy += lineH; });
+      if (i < rawFields.length - 1) cy += gapH;
     });
 
     footer();
@@ -551,7 +555,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
       const result = drawSection(label, body, y);
       if (result === null) {
         footer(); doc.addPage(); bg();
-        y = drawHeader();
+        y = drawHeader() + 8;
         y = drawSection(label, body, y);
       } else {
         y = result;
@@ -559,9 +563,11 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     }
 
     // Message clé
-    y += 2;
-    const msgLines = doc.splitTextToSize(String(comments.message_cle||""), colW-4);
-    const msgH = msgLines.length * 6.5 + 14;
+    y += 4;
+    checkY(40);
+    doc.setFontSize(14); doc.setFont("helvetica","bold");
+    const msgLines = doc.splitTextToSize(String(comments.message_cle||""), colW - 4);
+    const msgH = msgLines.length * 7 + 16;
     doc.setFillColor(...GREEN);
     doc.roundedRect(mX-4, y, colW+8, msgH, 2, 2, "F");
     doc.setFontSize(7); doc.setFont("helvetica","bold");
@@ -569,8 +575,8 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
     doc.text("MESSAGE CLÉ", mX, y+5); doc.setCharSpace(0);
     doc.setFontSize(14); doc.setFont("helvetica","bold");
     doc.setTextColor(...BLACK);
-    let ty = y + 12;
-    msgLines.forEach(l => { doc.text(l, mX, ty); ty += 6.5; });
+    let ty = y + 13;
+    msgLines.forEach(l => { doc.text(l, mX, ty); ty += 7; });
 
     footer();
     const filename = `Brief_${(brand||"Marqueur").replace(/\s+/g,"_")}.pdf`;
@@ -672,7 +678,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
         <HeaderLogo height={24} />
       </header>
 
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 32px 100px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 20px 100px", boxSizing: "border-box", overflowX: "hidden" }}>
 
         {/* ── LOADING ── */}
         {loading && (
