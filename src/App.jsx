@@ -454,58 +454,46 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
         <div style="font-size:10.5px;color:#111;line-height:1.7">${val}</div>
       </div>`).join("");
 
-    const html = \`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Brief_\${brand.replace(/\s+/g,"_")}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: white; color: #111; padding: 40px; max-width: 700px; margin: 0 auto; }
-    .header { margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1.5px solid #111; }
-    .eyebrow { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #999; margin-bottom: 8px; }
-    .brand { font-size: 26px; font-weight: 700; color: #111; margin-bottom: 4px; }
-    .date { font-size: 10px; color: #999; }
-    .section-title { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #999; margin: 24px 0 12px; }
-    .raw-block { background: #f5f5f5; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
-    .msg-block { background: #CEF563; border-radius: 8px; padding: 20px; margin-top: 24px; }
-    .msg-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 8px; }
-    .msg-text { font-size: 16px; font-weight: 700; color: #111; line-height: 1.4; }
-    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #eee; font-size: 8px; color: #bbb; display: flex; justify-content: space-between; }
-    @media print {
-      body { padding: 20px; }
-      .no-print { display: none; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="eyebrow">Brief créatif — Marqueur</div>
-    <div class="brand">\${brandStr}</div>
-    <div class="date">\${date}</div>
-  </div>
+    const css = [
+      "* { box-sizing: border-box; margin: 0; padding: 0; }",
+      "body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: white; color: #111; padding: 40px; max-width: 700px; margin: 0 auto; }",
+      ".header { margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1.5px solid #111; }",
+      ".eyebrow { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #999; margin-bottom: 8px; }",
+      ".brand { font-size: 26px; font-weight: 700; color: #111; margin-bottom: 4px; }",
+      ".date { font-size: 10px; color: #999; }",
+      ".section-title { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #999; margin: 24px 0 12px; }",
+      ".raw-block { background: #f5f5f5; border-radius: 8px; padding: 20px; margin-bottom: 24px; }",
+      ".msg-block { background: #CEF563; border-radius: 8px; padding: 20px; margin-top: 24px; }",
+      ".msg-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 8px; }",
+      ".msg-text { font-size: 16px; font-weight: 700; color: #111; line-height: 1.4; }",
+      ".footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #eee; font-size: 8px; color: #bbb; display: flex; justify-content: space-between; }",
+      "@media print { body { padding: 20px; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }",
+    ].join(" ");
 
-  <div class="section-title">Réponses client</div>
-  <div class="raw-block">\${rawHtml}</div>
-
-  <div class="section-title" style="page-break-before:always">Brief généré par l'IA</div>
-  \${aiHtml}
-
-  <div class="msg-block">
-    <div class="msg-label">Message clé</div>
-    <div class="msg-text">\${comments.message_cle}</div>
-  </div>
-
-  <div class="footer">
-    <span>Généré par MARQUEUR Brief Generator</span>
-    <span>marqueur.design</span>
-  </div>
-
-  <script>window.onload = function() { window.print(); }</script>
-</body>
-</html>\`;
+    const html = "<!DOCTYPE html><html><head>"
+      + '<meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      + "<title>Brief_" + brand.replace(/\s+/g, "_") + "</title>"
+      + "<style>" + css + "</style>"
+      + "</head><body>"
+      + '<div class="header">'
+      + '<div class="eyebrow">Brief créatif — Marqueur</div>'
+      + '<div class="brand">' + brandStr + "</div>"
+      + '<div class="date">' + date + "</div>"
+      + "</div>"
+      + '<div class="section-title">Réponses client</div>'
+      + '<div class="raw-block">' + rawHtml + "</div>"
+      + '<div class="section-title" style="page-break-before:always">Brief généré par l\'IA</div>'
+      + aiHtml
+      + '<div class="msg-block">'
+      + '<div class="msg-label">Message clé</div>'
+      + '<div class="msg-text">' + comments.message_cle + "</div>"
+      + "</div>"
+      + '<div class="footer">'
+      + "<span>Généré par MARQUEUR Brief Generator</span>"
+      + "<span>marqueur.design</span>"
+      + "</div>"
+      + "</body></html>";
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
