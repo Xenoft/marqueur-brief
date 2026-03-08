@@ -113,7 +113,7 @@ const MTextarea = ({ value, onChange, placeholder, error }) => (
 );
 
 const BtnPrimary = ({ onClick, children, disabled }) => {
-  const [hovered, setHovered] = React.useState(false);
+  const [hovered, setHovered] = useState(false);
   return (
     <button onClick={onClick} disabled={disabled}
       onMouseEnter={() => setHovered(true)}
@@ -244,7 +244,7 @@ const LoadingScreen = () => {
 };
 
 const BtnGhost = ({ onClick, children }) => {
-  const [hovered, setHovered] = React.useState(false);
+  const [hovered, setHovered] = useState(false);
   return (
     <button onClick={onClick}
       onMouseEnter={() => setHovered(true)}
