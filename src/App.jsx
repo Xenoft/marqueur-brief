@@ -605,10 +605,11 @@ Réponds UNIQUEMENT avec le JSON valide, sans backticks.`;
       {/* ── Header ── */}
       <header className="no-print" style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0 40px", height: 56, borderBottom: `1px solid ${C.border}`,
+        padding: "0 32px", height: 56, borderBottom: `1px solid ${C.border}`,
         position: "sticky", top: 0, background: C.black, zIndex: 100,
       }}>
         <HeaderLogo height={24} />
+        <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: "0.05em" }}>Générateur de brief</span>
       </header>
 
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 20px 100px", boxSizing: "border-box", overflowX: "hidden" }}>
